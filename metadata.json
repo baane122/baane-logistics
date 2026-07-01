@@ -1,0 +1,6 @@
+{
+  "name": "Baane Logistics",
+  "description": "High-tech global logistics and sourcing platform seamlessly connecting China to Somaliland. Features sea cargo, air cargo, product sourcing, factory inspection, secure payments, currency exchange, and interactive container tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
