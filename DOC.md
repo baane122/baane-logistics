@@ -1,135 +1,216 @@
-# Baane Logistics — Technical Documentation
+# Baane Logistics — Full Technical Documentation
 
-> **Version:** 2.0.0
-> **Last Updated:** July 2026
-> **Stack:** React 19 + Express + Convex (PostgreSQL/Document DB) + Tailwind v4
+## 📋 Overview
+
+Baane Logistics is a production‑ready, serverless logistics platform connecting Chinese suppliers with Somaliland buyers. The entire backend runs on **Convex Cloud** — no Express server, no traditional database, no Docker. The frontend is a React SPA deployed via **Vercel**.
 
 ---
 
-## 1. Architecture Overview
+## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                    Browser (SPA)                      │
-│  ┌────────────────────────────────────────────────┐  │
-│  │           Vite Dev Server (port 3000)           │  │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────────┐ │  │
-│  │  │ Public    │  │ Admin    │  │ Components   │ │  │
-│  │  │ App.tsx   │  │ AdminApp │  │ (7 modules)  │ │  │
-│  │  └──────────┘  └──────────┘  └──────────────┘ │  │
-│  └────────────────────────────────────────────────┘  │
-│                        │                              │
-│                        ▼                              │
-│              ┌─────────────────┐                      │
-│              │  Convex Client   │                      │
-│              │  (Real-time SDK) │                      │
-│              └────────┬────────┘                      │
-└───────────────────────┼──────────────────────────────┘
+┌────────────────────────────────────────────────────────┐
+│  Browser (SPA)                                         │
+│  http://localhost:3000  /  https://baane-logistics.vercel.app │
+│                                                        │
+│  / (public)    → App.tsx (sections + GSAP animations)   │
+│  /admin        → AdminApp.tsx (12-tab admin panel)      │
+│  /api/*        → Proxied to Convex HTTP actions         │
+└───────────────────────┬────────────────────────────────┘
                         │
                         ▼
-┌─────────────────────────────────────────────────────┐
-│              Convex Cloud Backend                     │
-│  ┌────────────────────────────────────────────────┐  │
-│  │           HTTP Router (http.ts)                 │  │
-│  │  /api/tracking /api/sourcing /api/chat ...      │  │
-│  └────────────────────────────────────────────────┘  │
-│  ┌────────┐ ┌────────┐ ┌────────┐ ┌──────────────┐  │
-│  │auth.ts │ │cont-   │ │sourc-  │ │inspections.ts│  │
-│  │        │ │ainers  │ │ing.ts  │ │              │  │
-│  └────────┘ └────────┘ └────────┘ └──────────────┘  │
-│  ┌────────┐ ┌────────┐ ┌────────┐ ┌──────────────┐  │
-│  │quotes  │ │chat.ts │ │sett-   │ │aiModels.ts   │  │
-│  │.ts     │ │        │ │ings.ts │ │              │  │
-│  └────────┘ └────────┘ └────────┘ └──────────────┘  │
-│  ┌────────┐ ┌────────┐ ┌────────┐ ┌──────────────┐  │
-│  │prompts │ │apiKeys │ │email-  │ │audit.ts      │  │
-│  │.ts     │ │.ts     │ │Tmpl.ts │ │              │  │
-│  └────────┘ └────────┘ └────────┘ └──────────────┘  │
-│  ┌────────────────────────────────────────────────┐  │
-│  │              Schema (10 Tables)                  │  │
-│  └────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────┐
+│  Vite Dev Server (dev)  /  Vercel Edge (prod)          │
+│  - SPA appType (historyApiFallback)                     │
+│  - Proxy /api/* → Convex HTTP Actions URL              │
+└───────────────────────┬────────────────────────────────┘
+                        │
+                        ▼
+┌────────────────────────────────────────────────────────┐
+│  Convex Cloud (Backend)                                 │
+│  https://tangible-husky-835.eu-west-1.convex.cloud      │
+│                                                        │
+│  10 tables, 40+ functions, HTTP actions                 │
+│  - Auth (SHA-256 + sessions)                            │
+│  - CRUD for all entities                                │
+│  - Gemini AI fallback                                   │
+│  - Seed/migration mutations                             │
+└────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 2. Stack Overview
+## 🗄️ Database Schema (Convex)
 
-### Frontend
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| React | ^19.0.1 | UI Library (Server Components ready) |
-| TypeScript | ~5.8.2 | Type-safe development |
-| Vite | ^6.2.3 | Build tool & dev server |
-| Tailwind CSS | ^4.1.14 | Utility-first CSS |
-| Framer Motion (motion) | ^12.23.24 | Page transitions & layout animations |
-| GSAP (GreenSock) | ^3.12 | Scroll-triggered entrances, counters, parallax |
-| GSAP (GreenSock) | ^3.12 | Scroll-triggered entrances, counters, parallax |
-| Lucide React | ^0.546.0 | Icon library |
-| Convex React | ^1.42 | Real-time data fetching |
+### 1. `users`
+| Field | Type | Index |
+|-------|------|-------|
+| `name` | string | — |
+| `email` | string | `by_email` |
+| `passwordHash` | string | — |
+| `role` | "admin" \| "staff" \| "viewer" | `by_role` |
+| `isActive` | boolean | — |
+| `lastLogin` | optional string | — |
 
-### Backend
-| Technology | Version | Purpose |
-|------------|---------|---------|
-| Express | ^4.21.2 | HTTP server (dev mode Vite middleware) |
-| Convex | ^1.42 | Backend platform (DB + Serverless functions) |
-| esbuild | ^0.25.0 | Production bundler |
-| tsx | ^4.21.0 | TypeScript execution for dev server |
-| dotenv | ^17.2.3 | Environment variables |
-| @google/genai | ^2.4.0 | Gemini AI API |
+### 2. `settings`
+Key‑value store for app configuration. Indexed by `by_key` and `by_category`.
 
-### Infrastructure
-| Component | URL |
-|-----------|-----|
-| Convex Cloud DB | `https://tangible-husky-835.eu-west-1.convex.cloud` |
-| Convex HTTP Actions | `https://tangible-husky-835.eu-west-1.convex.site` |
-| Convex Dashboard | [Link](https://dashboard.convex.dev/t/abdirahman-baane/baane-logistics/tangible-husky-835) |
-| Local Dev Server | `http://localhost:3000` |
+### 3. `aiModels`
+AI model configurations (provider, modelId, apiKey, capabilities). Indexed by `by_provider` and `by_active`.
+
+### 4. `systemPrompts`
+System prompt templates for AI. Versioned, indexed by `by_slug` and `by_category`.
+
+### 5. `apiKeys`
+API key storage with masked display. Indexed by `by_provider` and `by_active`.
+
+### 6. `emailTemplates`
+Email templates with variables. Indexed by `by_slug`.
+
+### 7. `containers`
+Container tracking with route checkpoints and IoT metrics. Indexed by `by_trackingId`, `by_status`, `by_type`.
+
+### 8. `sourcingRequests`
+Sourcing requests with status workflow. Indexed by `by_status`, `by_createdAt`.
+
+### 9. `inspectionRequests`
+Inspection bookings with city and scope. Indexed by `by_status`, `by_city`, `by_createdAt`.
+
+### 10. `cargoQuotes`
+Cargo quotes with auto‑calculated pricing. Indexed by `by_status`, `by_createdAt`.
+
+### 11. `chatMessages`
+Conversation history. Indexed by `by_session` (sessionId + timestamp).
+
+### 12. `auditLog`
+System audit trail. Indexed by `by_timestamp`, `by_entity`.
 
 ---
 
-## 3. Directory Structure
+## 🎨 Brand & Design System
+
+### Colors
+
+| Token | Hex | CSS Variable | Usage |
+|-------|-----|-------------|-------|
+| Brand Navy | `#0A2540` | `--color-brand-navy` | Cards, sidebar, headers |
+| Brand Teal | `#00D4AA` | `--color-brand-teal` | CTAs, accents, active states |
+| Brand Gold | `#D4AF37` | `--color-brand-gold` | Highlights, security badges |
+| Brand Deep | `#020914` | `--color-brand-deep` | Page background |
+| Surface Dark | `#030d1a` | `--color-surface-dark` | Elevated cards |
+| Surface Mid | `#061a2c` | `--color-surface-mid` | Section backgrounds |
+| Surface Card | `#0A2540` | `--color-surface-card` | Card backgrounds |
+
+### Typography
+
+| Family | Weight | Usage |
+|--------|--------|-------|
+| **Inter** | 300–900 | Body text, UI labels |
+| **Montserrat** | 500–900 | Headings, display text |
+| **JetBrains Mono** | 400–700 | Code, metrics, timestamps |
+
+### Animation Tokens
+
+- `glow-pulse` — Pulsing glow effect (2s cycle)
+- `radar` — Radar sweep rotation (4s)
+- `float` — Floating motion (6s)
+- `shimmer` — Background shimmer (3s)
+- `border-glow` — Border glow pulse (3s)
+
+### GSAP Animations
+
+- **Page entrance** — Staggered fade‑in for navbar + hero
+- **Stats counter** — Scroll‑triggered number animation (`power2.out`)
+- **Corridor cards** — Scroll‑reveal with stagger (`x: -40 → 0`)
+- **Cleanup** — `ScrollTrigger.getAll().forEach(st => st.kill())` on unmount
+
+---
+
+## 🔌 API Reference
+
+### Convex HTTP Actions
+
+All `/api/*` routes are handled by `convex/http.ts` and proxied through Vite in development.
+
+#### `GET /api/health`
+Returns `{ status: "ok", timestamp: "..." }`
+
+#### `GET /api/tracking/:id`
+Container tracking lookup. Returns container data or a dynamic fallback.
+
+#### `POST /api/sourcing`
+Submit a sourcing request. Body: `{ name, phone, productType, quantity, budget?, targetMarket, description? }`
+
+#### `POST /api/inspection`
+Book an inspection. Body: `{ name, phone, factoryName, factoryAddress, city, inspectionDate, scope, productType }`
+
+#### `POST /api/quotes`
+Request a cargo quote. Body: `{ name, phone, serviceType, cargoType, origin, destination, weight, volume }`
+
+#### `POST /api/chat`
+AI assistant chat. Body: `{ message, history? }`. Returns `{ text, _fallback? }`.
+
+### Convex Queries/Mutations (used by admin panel)
+
+| Query/Mutation | Module | Description |
+|---------------|--------|-------------|
+| `containers.list` | containers.ts | List with optional status/type filter |
+| `containers.create` | containers.ts | Create container with full route |
+| `containers.update` | containers.ts | Update status, progress, location |
+| `containers.remove` | containers.ts | Delete container |
+| `containers.getStats` | containers.ts | Aggregate statistics |
+| `containers.seedContainers` | containers.ts | Seed 3 demo containers |
+| `sourcing.list` | sourcing.ts | List with optional status filter |
+| `sourcing.create` | sourcing.ts | New sourcing request |
+| `sourcing.update` | sourcing.ts | Update status, notes |
+| `sourcing.remove` | sourcing.ts | Delete request |
+| `sourcing.getStats` | sourcing.ts | Aggregate statistics |
+| `inspections.list` / `create` / `update` / `remove` / `getStats` | inspections.ts | Full CRUD for inspections |
+| `quotes.list` / `create` / `update` / `remove` / `getStats` | quotes.ts | Full CRUD with auto‑pricing |
+| `auth.login` / `createAdmin` / `listUsers` / `updateUser` / `deleteUser` | auth.ts | Auth & user management |
+| `settings.get` / `set` / `getAll` / `remove` / `seedDefaults` | settings.ts | Key‑value settings |
+| `aiModels.list` / `create` / `update` / `remove` / `toggleActive` | aiModels.ts | AI model config |
+| `apiKeys.list` / `create` / `update` / `remove` / `toggleActive` | apiKeys.ts | API key management |
+| `prompts.list` / `create` / `update` / `remove` / `seedDefaults` | prompts.ts | System prompts |
+| `emailTemplates.list` / `create` / `update` / `remove` / `seedDefaults` | emailTemplates.ts | Email templates |
+| `audit.log` / `list` / `getRecent` / `clearOld` | audit.ts | Audit logging |
+| `chat.listBySession` / `sendMessage` | chat.ts | Chat history |
+
+---
+
+## 📁 File Structure
 
 ```
 baane-logistics/
-├── convex/                    # Convex backend (serverless functions)
-│   ├── schema.ts              # Database schema (10 tables)
-│   ├── auth.ts                # Authentication queries & mutations
-│   ├── containers.ts          # Container CRUD + stats
-│   ├── sourcing.ts            # Sourcing requests CRUD
-│   ├── inspections.ts         # Inspection bookings CRUD
-│   ├── quotes.ts              # Cargo quotes CRUD with auto-pricing
-│   ├── chat.ts                # Chat messages + fallback AI
-│   ├── settings.ts            # Key-value settings store
-│   ├── aiModels.ts            # AI model configuration
-│   ├── prompts.ts             # System prompt management
-│   ├── apiKeys.ts             # External API key management
-│   ├── emailTemplates.ts      # Email template CRUD
-│   ├── audit.ts               # Audit logging
-│   ├── http.ts                # Legacy REST API compatibility
-│   └── _generated/            # Auto-generated Convex types
-├── src/
-│   ├── main.tsx               # Entry point with routing
-│   ├── App.tsx                # Main public SPA
-│   ├── convexClient.tsx       # Convex provider wrapper
-│   ├── index.css              # Enhanced design system (glass, gradients, grid)
-│   ├── translations.ts        # EN + Somali bilingual dictionary
-│   ├── types.ts               # Shared TypeScript interfaces
-│   ├── vite-env.d.ts          # Vite env type declarations
-│   ├── components/            # Reusable React components
-│   │   ├── ErrorBoundary.tsx  # Error boundary wrapper
-│   │   ├── ChatAssistant.tsx  # AI chat interface
-│   │   ├── InspectionSection.tsx
-│   │   ├── InteractiveMap.tsx # SVG route map with hover
-│   │   ├── Logo.tsx            # SVG brand logo (icon + seal)
-│   │   ├── PaymentSection.tsx  # Currency + freight calculator
-│   │   ├── SourcingSection.tsx # Sourcing request form
-│   │   └── TrackingSection.tsx # Container tracking search
-│   ├── admin/                 # Admin panel
-│   │   ├── AdminApp.tsx       # Admin SPA wrapper
-│   │   ├── AdminLogin.tsx     # Login page
-│   │   ├── AdminDashboard.tsx # Main dashboard layout
-│   │   └── tabs/              # 12 tab modules
+├── convex/                    # Convex backend
+│   ├── _generated/           # Auto‑generated types
+│   ├── schema.ts             # Database schema (12 tables)
+│   ├── auth.ts               # Authentication functions
+│   ├── containers.ts         # Container tracking CRUD
+│   ├── sourcing.ts           # Sourcing requests CRUD
+│   ├── inspections.ts        # Inspection bookings CRUD
+│   ├── quotes.ts             # Cargo quotes with auto‑pricing
+│   ├── chat.ts               # AI chat & fallback responses
+│   ├── aiModels.ts           # AI model configuration
+│   ├── apiKeys.ts            # API key management
+│   ├── prompts.ts            # System prompt templates
+│   ├── emailTemplates.ts     # Email template management
+│   ├── settings.ts           # Key‑value settings store
+│   ├── audit.ts              # Audit logging
+│   └── http.ts               # HTTP action handlers
+├── src/                       # Frontend
+│   ├── main.tsx              # SPA entry + routing
+│   ├── App.tsx               # Main public SPA
+│   ├── index.css             # Tailwind + brand theme
+│   ├── types.ts              # TypeScript interfaces
+│   ├── translations.ts       # EN/SO translations
+│   ├── convexClient.tsx      # Convex client provider
+│   ├── vite-env.d.ts         # Vite env types
+│   ├── admin/
+│   │   ├── AdminApp.tsx      # Admin root (auth guard)
+│   │   ├── AdminDashboard.tsx # 12‑tab dashboard layout
+│   │   ├── AdminLogin.tsx    # Login form
+│   │   └── tabs/
 │   │       ├── OverviewTab.tsx
 │   │       ├── ContainersTab.tsx
 │   │       ├── SourcingTab.tsx
@@ -142,294 +223,151 @@ baane-logistics/
 │   │       ├── PromptsTab.tsx
 │   │       ├── ApiKeysTab.tsx
 │   │       └── EmailTemplatesTab.tsx
-│   ├── hooks/useGsapAnimations.ts # GSAP animation library (8 hooks)
-│   ├── hooks/useGsapAnimations.ts # GSAP animation library (8 hooks)
+│   ├── components/
+│   │   ├── Logo.tsx          # SVG brand logo (icon + seal)
+│   │   ├── ErrorBoundary.tsx # React error boundary
+│   │   ├── TrackingSection.tsx # Live tracking UI
+│   │   ├── SourcingSection.tsx # Sourcing request form
+│   │   ├── InspectionSection.tsx # Inspection booking
+│   │   ├── PaymentSection.tsx # Escrow payment UI
+│   │   ├── InteractiveMap.tsx # Map visualization
+│   │   └── ChatAssistant.tsx # AI chat interface
 │   └── hooks/
-│       └── usePageTracking.ts # Performance monitoring
-├── server.ts                  # Express server (dev + prod)
-├── index.html                 # Vite entry HTML
-├── vite.config.ts             # Vite configuration
-├── tsconfig.json              # TypeScript configuration
-├── package.json               # Dependencies & scripts
-├── DOC.md                     # This file
-├── README.md                  # Quick start guide
-└── .env.example               # Environment variables template
+│       ├── useGsapAnimations.ts # GSAP reusable hooks
+│       └── usePageTracking.ts   # Performance metrics
+├── index.html                 # HTML entry point
+├── vite.config.ts            # Vite build + proxy config
+├── vercel.json               # Vercel deployment config
+├── tsconfig.json             # TypeScript config
+├── .env.example              # Environment variables
+├── .gitignore                # Git ignore rules
+├── package.json              # Dependencies & scripts
+├── README.md                 # Quick start guide
+└── DOC.md                    # This document
 ```
 
 ---
 
-## 4. Database Schema (10 Tables)
+## 🔧 Setup & Configuration
 
-### `users`
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | string | Full name |
-| `email` | string (unique) | Login email |
-| `passwordHash` | string | SHA-256 hash |
-| `role` | "admin" / "staff" / "viewer" | Access level |
-| `isActive` | boolean | Account status |
-| `lastLogin` | string (optional) | ISO timestamp |
-| `createdAt` | string | ISO timestamp |
-| `updatedAt` | string | ISO timestamp |
-
-### `containers`
-| Field | Type | Description |
-|-------|------|-------------|
-| `trackingId` | string | e.g. BAANE-SEA-8821 |
-| `type` | "Sea Cargo" / "Air Cargo" | Transport mode |
-| `carrier` | string | Shipping line |
-| `vessel` | string | Vessel/flight name |
-| `origin` / `destination` | string | Port names |
-| `status` | string | Current status |
-| `progress` | number (0-100) | Transit percentage |
-| `metrics` | `{temperature, humidity, status}` | IoT sensor data |
-| `departureDate` / `arrivalDate` | string | Dates |
-| `shipper` / `consignee` | string | Parties |
-| `cargoDetails` | string | Cargo description |
-| `weight` | string | Cargo weight |
-| `currentLocation` | string | Real-time position |
-| `route` | RouteCheckpoint[] | Array of checkpoints |
-| Indexes: `by_trackingId`, `by_status`, `by_type` |
-
-### `sourcingRequests`
-| Field | Type | Description |
-|-------|------|-------------|
-| `name`, `phone` | string | Contact info |
-| `productType` | string | Product description |
-| `quantity` | string | Target volume |
-| `budget` | string (optional) | Budget in USD |
-| `targetMarket` | string | City/market in China |
-| `description` | string (optional) | Specifications |
-| `status` | enum | Workflow status |
-| `notes` | string (optional) | Admin notes |
-| `assignedTo` | string (optional) | Staff assignment |
-| `quotationAmount` | string (optional) | Quote in USD |
-| `supplierFound` | string (optional) | Supplier name |
-
-### `inspectionRequests`
-Adds: `inspectorName`, `reportUrl`, `reportData`, `photos`
-
-### `cargoQuotes`
-Adds: `estimatedCost`, `estimatedDuration`, `breakdown` (freight, insurance, customs, handling, total)
-
-### `settings` (Key-Value Store)
-| Field | Type | Description |
-|-------|------|-------------|
-| `key` | string | Setting identifier |
-| `value` | any | Setting value |
-| `category` | string | Grouping (general, contact, ai, currency, shipping) |
-| `description` | string (optional) | Human-readable description |
-
-### `aiModels`
-| Field | Type | Description |
-|-------|------|-------------|
-| `provider` | enum | google / openai / anthropic / custom |
-| `modelId` | string | e.g. gemini-2.0-flash |
-| `apiKey` | string | Encrypted API key |
-| `baseUrl` | string (optional) | Custom endpoint |
-| `isActive` | boolean | Toggle on/off |
-| `capabilities` | string[] | Feature tags |
-| `maxTokens` / `temperature` | number | Model parameters |
-
-### Other Tables
-- **`systemPrompts`** — Versioned AI system prompts with categories
-- **`apiKeys`** — External integration keys with scopes & expiry
-- **`emailTemplates`** — Transactional email templates with `{{variable}}` support
-- **`chatMessages`** — Conversation history with session grouping
-- **`auditLog`** — Immutable audit trail for all entity actions
-
----
-
-## 5. API Endpoints
-
-### Convex HTTP Actions (Legacy REST compatibility)
-| Method | Path | Purpose |
-|--------|------|---------|
-| GET | `/api/health` | Health check |
-| GET | `/api/tracking/:id` | Container lookup with dynamic fallback |
-| POST | `/api/sourcing` | Create sourcing request |
-| POST | `/api/inspection` | Book inspection |
-| POST | `/api/quotes` | Request cargo quote |
-| POST | `/api/chat` | AI chat (fallback mode) |
-
-### Convex Queries (React hooks)
-```tsx
-// All queries are real-time via Convex SDK
-useQuery(api.containers.getByTrackingId, { trackingId })
-useQuery(api.containers.list, { status, type })
-useQuery(api.containers.getStats)
-useQuery(api.sourcing.list, { status })
-useQuery(api.inspections.list, { status })
-useQuery(api.quotes.list, { status })
-useQuery(api.settings.getAll)
-useQuery(api.settings.getByCategory, { category })
-useQuery(api.aiModels.list)
-useQuery(api.aiModels.getActive)
-useQuery(api.prompts.list, { category })
-useQuery(api.auth.listUsers)
-useQuery(api.audit.getRecent, { limit })
-```
-
----
-
-## 6. Brand & Design System
-
-### Colors
-```
-Brand Navy     #0A2540  — Primary backgrounds, navbars
-Brand Teal     #00D4AA  — Primary accent, active states, buttons
-Brand Gold     #D4AF37  — Secondary accent, highlights, premium badges
-Brand White    #FFFFFF  — Text, icons
-Brand Charcoal #2D2D2D  — Secondary text
-```
-- Background: `#020914` (deep space navy)
-- Card backgrounds: `#0A2540` (brand-navy)
-- Input backgrounds: `#030d1a`
-
-### Typography
-```
-Font Sans:      Inter (body text)
-Font Display:   Montserrat (headings, labels)
-Font Mono:      JetBrains Mono (code, metrics, data)
-```
-
-### Animation Tokens
-
-| Token | Duration | Easing | Description |
-|-------|----------|--------|-------------|
-| `glowPulse` | 2s | cubic-bezier | Pulsing glow on active elements |
-| `radarSweep` | 4s | linear | Radar rotation for tracking |
-| `float` | 6s | ease-in-out | Floating hover motion |
-| `shimmer` | 3s | ease-in-out | Shimmer loading effect |
-| `borderGlow` | 3s | ease-in-out | Animated border pulse |
-| `scanline` | 8s | linear | Scanline overlay for tech feel |
-
-### GSAP Animation Hooks (src/hooks/useGsapAnimations.ts)
-
-| Hook | Purpose |
-|------|---------|
-| `useFadeInUp` | Fade + slide entrance on mount |
-| `useStaggerChildren` | Staggered child element reveals |
-| `useScrollReveal` | Scroll-triggered entrance with scale |
-| `useParallax` | Parallax scroll effect |
-| `useCounter` | Animated number counter for stats |
-| `usePageEntrance` | Master GSAP timeline for page load |
-| `useGsapCleanup` | Kills all tweens/ScrollTriggers on unmount |
-
-### CSS Utility Classes
-
-| Class | Purpose |
-|-------|---------|
-| `.text-gradient` | Teal-to-gold gradient text fill |
-| `.text-gradient-teal` | Teal-to-cyan gradient text fill |
-| `.text-gradient-gold` | Gold-to-light-gold gradient text fill |
-| `.glass-panel` | Blurred glass background with teal border |
-| `.glass-card` | Deeper glass card for containers |
-| `.glow-border` | Animated gradient border via pseudo-element |
-| `.grid-pattern` | Subtle grid overlay for hero backgrounds |
-| `.radial-glow` | Radial gradient glow overlay |
-| `.scanline` | Animated horizontal scanline (tech aesthetic) |
-
-### Page Section Animations
-
-| Section | Animation Technique |
-|---------|-------------------|
-| Navbar | GSAP timeline fade-in from top (-30px), Framer Motion `layoutId` pill spring |
-| Hero | GSAP staggered 3-layer reveal (badge → heading → CTA), floating orbs |
-| Stats Bar | ScrollTrigger `textContent` counter animation via GSAP |
-| Command Station | Framer Motion `layoutId` tab pill spring, `whileInView` entrance |
-| Corridors | GSAP `fromTo` staggered cards from left with ScrollTrigger |
-| Footer | Framer Motion `whileInView` fade-in |
-| Floating WhatsApp | Spring scale entrance from 0 with 2s delay
-
-### Component States
-- Loading: Three bouncing dots in brand-teal
-- Error: Red border + icon with message
-- Success: Green with CheckCircle icon
-- Empty: Gray centered text with helpful message
-
----
-
-## 7. Admin Panel
-
-**URL:** `/admin`
-**Default Login:** `admin@baane.com` / `admin123`
-
-### 12 Tabs
-1. **Overview** — Dashboard with 6 stat cards, recent containers, activity feed, sourcing & quote snippets
-2. **Containers** — Table with inline edit, progress bars, create/delete
-3. **Sourcing** — Kanban board (Received → Searching → Verifying → Quoted → Completed)
-4. **Inspections** — Sortable data table with city/scope filters
-5. **Quotes** — Searchable table with auto-calculated cost breakdown
-6. **Users** — User management with roles & active status
-7. **Audit Log** — Full activity history with timestamps
-8. **Settings** — 17 configurable settings across 5 categories
-9. **AI Models** — Full CRUD for Gemini/OpenAI/Anthropic/Custom
-10. **Prompts** — Versioned system prompts with copy/edit/delete
-11. **API Keys** — Masked key management with active toggle
-12. **Email Templates** — Templates with `{{variable}}` injection
-
----
-
-## 8. Performance Optimizations
-
-- **Code Splitting**: Lazy-loaded components via `React.lazy()` + `Suspense`
-- **Route-based chunking**: `/admin` loads separately from public app
-- **React.memo**: All 7 components wrapped to prevent unnecessary re-renders
-- **useCallback**: Event handlers stable across renders
-- **requestAnimationFrame**: Replaces setTimeout for scroll operations
-- **GSAP ScrollTrigger**: Animations only fire when elements enter viewport
-- **useGsapCleanup**: All tweens killed on component unmount (no memory leaks)
-- **CSS will-change**: GPU-accelerated properties (transform, opacity) only
-- **Glassmorphism**: `backdrop-filter: blur()` for performant frosted glass effects
-- **Tailwind JIT**: Only generates used CSS classes
-- **Convex Real-time**: Optimistic updates + WebSocket push
-- **Static file caching**: `maxAge: "1y"` for production assets
-- **Error Boundaries**: Graceful fallbacks for component crashes
-
----
-
-## 9. Scripts
-
-```bash
-npm run dev          # Start development server (tsx server.ts)
-npm run build        # Build for production (vite + esbuild)
-npm run start        # Start production server (node dist/server.js)
-npm run lint         # TypeScript type check (tsc --noEmit)
-npm run clean        # Remove dist and build artifacts
-```
-
----
-
-## 10. Environment Variables
+### Environment Variables
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `PORT` | No | `3000` | HTTP server port |
-| `GEMINI_API_KEY` | No | — | Google Gemini API key |
-| `VITE_CONVEX_URL` | No | Convex cloud URL | Convex backend URL |
-| `NODE_ENV` | No | `development` | Environment mode |
+| `VITE_CONVEX_URL` | No | *hardcoded* | Convex deployment URL |
+| `VITE_CONVEX_SITE_URL` | No | *hardcoded* | Convex HTTP actions URL |
+
+No `.env` file is required for development — URLs are hardcoded in `vite.config.ts`.
+
+### Convex Setup
+
+```bash
+# Login to Convex
+npx convex login
+
+# Link to existing project
+npx convex dev --configure=existing --team abdirahman-baane --project baane-logistics
+
+# Deploy functions
+npx convex deploy
+
+# Seed initial data (run once)
+# Visit http://localhost:3000 to trigger seeding via admin panel
+```
+
+### Admin First-Time Setup
+
+1. Visit `http://localhost:3000/admin`
+2. Login with `admin@baane.com` / `admin123`
+3. Visit Settings tab → seed default settings
+4. Visit AI Models tab → add Gemini API key
+5. Visit Prompts tab → seed default prompts
+6. Visit Emails tab → seed default templates
 
 ---
 
-## 11. Convex Cloud
+## 🚀 Deployment
 
-- **URL**: `https://tangible-husky-835.eu-west-1.convex.cloud`
-- **HTTP Actions**: `https://tangible-husky-835.eu-west-1.convex.site`
-- **Dashboard**: [Convex Console](https://dashboard.convex.dev/t/abdirahman-baane/baane-logistics/tangible-husky-835)
-- **Functions**: 40+ queries & mutations across 12 modules
-- **Auth**: SHA-256 hashed passwords, role-based access (admin/staff/viewer)
+### Vercel
+
+1. Push to GitHub
+2. Import project in Vercel
+3. Vercel auto‑detects Vite config
+4. Build command: `npm run build`
+5. Output directory: `dist`
+6. Environment variables: Set `VITE_CONVEX_URL`
+
+### Convex
+
+```bash
+npx convex deploy
+```
 
 ---
 
-## 12. Tracking Seed Data
+## 🧪 Demo Data
 
-| ID | Mode | Route | Status |
-|----|------|-------|--------|
-| BAANE-SEA-8821 | Sea | Shenzhen → Berbera | In Transit (72%) |
-| BAANE-AIR-5042 | Air | Guangzhou → Hargeisa | Delivered |
-| BAANE-SEA-9013 | Sea | Ningbo → Berbera | Origin Customs (18%) |
+The system seeds the following demo data:
+
+- **3 Containers**: BAANE-SEA-8821 (in transit), BAANE-AIR-5042 (delivered), BAANE-SEA-9013 (origin customs)
+- **18 Default Settings**: Company info, AI config, shipping rates
+- **3 System Prompts**: AI Copilot, Sourcing AI, Inspection AI
+- **2 Email Templates**: Sourcing confirmation, Inspection scheduled
 
 ---
 
-*Documentation generated for Baane Logistics v2.0.0 — Convex Cloud Backend*
+## 🔐 Security
+
+- **Password hashing**: SHA-256 (in production, use bcrypt/argon2)
+- **Admin sessions**: localStorage token (in production, use httpOnly cookies)
+- **API keys**: Masked in list view (first 8 + last 4 chars)
+- **Audit logging**: All mutations logged with user, action, entity, timestamp
+- **CORS**: Convex handles cross‑origin automatically
+
+---
+
+## 🧹 Performance Optimizations
+
+- **Code splitting**: Vendor, Convex, GSAP, Motion, Icons split into separate chunks
+- **Lazy loading**: AdminApp and sections loaded via `import()` on route match
+- **GSAP cleanup**: All ScrollTrigger instances killed on component unmount
+- **React.memo**: ChatAssistant, TrackingSection, Logo memoized
+- **Minification**: esbuild (fast builds), terser option available
+- **SPA routing**: Vite `appType: 'spa'` for client‑side routing
+
+---
+
+## 🌐 Translation System
+
+The app supports English (`en`) and Somali (`so`) via `src/translations.ts`. The language toggle persists in `localStorage` under the `baane_lang` key.
+
+---
+
+## 📊 Admin Panel Tabs
+
+| Tab | Data Source | Actions |
+|-----|-------------|---------|
+| **Overview** | All queries | Stats cards + recent items |
+| **Containers** | containers | Search, create, edit, delete |
+| **Sourcing** | sourcing | Filter by status, create, edit, delete |
+| **Inspections** | inspections | Filter, create, edit, delete |
+| **Quotes** | quotes | Filter, update status, delete |
+| **Users** | auth | Create, edit role/status, delete |
+| **Audit Log** | audit | View all system actions |
+| **Settings** | settings | Edit key‑value pairs |
+| **AI Models** | aiModels | Add/edit/toggle/delete models |
+| **Prompts** | prompts | Add/edit/version/delete prompts |
+| **API Keys** | apiKeys | View masked keys, toggle, delete |
+| **Emails** | emailTemplates | Add/edit/delete email templates |
+
+---
+
+## 📝 Git Workflow
+
+```bash
+git add .
+git commit -m "feat: description"
+git push origin master
+```
+
+Branch rename: `git branch -m master main && git push -u origin main`

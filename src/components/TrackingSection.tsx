@@ -3,6 +3,8 @@ import { motion } from "motion/react";
 import { Search, Ship, Plane, Calendar, MapPin, Thermometer, Droplets, Info, Layers, CheckCircle2, AlertCircle } from "lucide-react";
 import { TrackingData } from "../types";
 
+const CONVEX_SITE_URL = import.meta.env.VITE_CONVEX_SITE_URL || "https://tangible-husky-835.eu-west-1.convex.site";
+
 interface TrackingSectionProps {
   onSelectTrack: (track: TrackingData) => void;
   activeTrack: TrackingData | null;
@@ -19,7 +21,7 @@ export const TrackingSection: React.FC<TrackingSectionProps> = ({ onSelectTrack,
   const trackT = {
     en: {
       radarTitle: "Unified Cargo Tracking Radar",
-      radarDesc: "Input your custom Bill of Lading, container serial, or air waybill code. Try our live demo container assets below.",
+      radarDesc: "Enter your Bill of Lading, container serial, or air waybill code. Or try one of our live demo containers below.",
       placeholder: "e.g. BAANE-SEA-8821",
       buttonTrack: "Track Container",
       buttonTracking: "Radar Scanning...",
@@ -53,7 +55,7 @@ export const TrackingSection: React.FC<TrackingSectionProps> = ({ onSelectTrack,
     },
     so: {
       radarTitle: "Mashiinka Raadraaca Shixnadaha Baane",
-      radarDesc: "Geli lambarkaaga raadraaca (Bill of Lading, Konteynar ama Air Waybill). Tijaabi lambarada hoos ku qoran si aad u aragto diiwaanka tooska ah.",
+      radarDesc: "Geli lambarkaaga raadraaca. Tijaabi lambarada hoos ku qoran si aad u aragto diiwaanka tooska ah.",
       placeholder: "tusaale. BAANE-SEA-8821",
       buttonTrack: "Raadraac Shixnada",
       buttonTracking: "Sawiridda Radar-ka...",
@@ -65,16 +67,16 @@ export const TrackingSection: React.FC<TrackingSectionProps> = ({ onSelectTrack,
       destinationHub: "Halka ay ku Socoto",
       expected: "La Filayo",
       consignmentCargo: "Nooca Shixnada",
-      grossWeight: "Miisaanka guud / Mugga",
+      grossWeight: "Miisaanka guud",
       transportVessel: "Markabka / Diyaarada",
       supplierShipper: "Warshada / Soo Diraha",
       receiverConsignee: "Halka la gaadhsiinayo",
-      logTimeline: "Diiwaanka Socdaalka Tooska ah",
+      logTimeline: "Diiwaanka Socdaalka",
       activeLocation: "Goobta Hadda",
-      iotSensors: "Dareemayaasha IoT Telemetry",
+      iotSensors: "Dareemayaasha IoT",
       internalTemp: "Heerkulka Gudaha",
       containerCore: "Heerkulka Konteynarka",
-      humidity: "Heerka Qoyaanka",
+      humidity: "Qoyaanka",
       antiCondensation: "Kahortaga Qoyaanka",
       satUplink: "Khadka Dayax-gacmeedka",
       operational: "● Toos u shaqaynaya",
@@ -82,7 +84,7 @@ export const TrackingSection: React.FC<TrackingSectionProps> = ({ onSelectTrack,
       lastPing: "Ugu Dambaysay",
       activeNow: "Hadda Toos ah",
       doubleShield: "Gaashaanka Labaad ee Baane",
-      shieldDesc: "Shixnadan waxaa lagu sameeyay baadhitaanka tayada ee Sourcing Sugan iyo Kormeerka Warshada ee goobta ka hor intaan laga soo ririn Shiinaha. Shamiitada elektaroonigga ah waa mid ammaan ah.",
+      shieldDesc: "Shixnadan waxaa lagu sameeyay baadhitaanka tayada ee Sourcing Sugan iyo Kormeerka Warshada ee goobta.",
       auditedSecured: "LA HUBIYAY & WAA AMMAAN",
     }
   }[lang];
@@ -95,12 +97,35 @@ export const TrackingSection: React.FC<TrackingSectionProps> = ({ onSelectTrack,
     setError("");
 
     try {
+      // Use Convex HTTP action URL (proxied in dev via Vite)
       const res = await fetch(`/api/tracking/${targetId}`);
       if (!res.ok) {
         throw new Error(trackT.errNotFound);
       }
       const data = await res.json();
-      onSelectTrack(data);
+
+      // Map to TrackingData interface
+      const track: TrackingData = {
+        id: data.id || data.trackingId || targetId,
+        type: data.type || "Sea Cargo",
+        carrier: data.carrier || "Baane Logistics",
+        vessel: data.vessel || "BAANE VESSEL",
+        origin: data.origin || "China",
+        destination: data.destination || "Somaliland",
+        status: data.status || "Processing",
+        progress: data.progress || 0,
+        metrics: data.metrics || { temperature: "21.5°C", humidity: "48%", status: "Nominal" },
+        departureDate: data.departureDate || "2026-06-20",
+        arrivalDate: data.arrivalDate || "2026-07-15",
+        shipper: data.shipper || "Sourcing Partner",
+        consignee: data.consignee || "Client",
+        cargoDetails: data.cargoDetails || "Commercial Cargo",
+        weight: data.weight || "0 kg",
+        currentLocation: data.currentLocation || "In Transit",
+        route: data.route || [],
+      };
+
+      onSelectTrack(track);
     } catch (err: any) {
       setError(err.message || trackT.errFailed);
     } finally {
@@ -110,215 +135,138 @@ export const TrackingSection: React.FC<TrackingSectionProps> = ({ onSelectTrack,
 
   return (
     <div className="space-y-6">
-      {/* Search Bar / Radar Control Console */}
+      {/* Search Bar */}
       <div className="bg-brand-navy border border-brand-teal/20 p-5 rounded-2xl shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 h-32 w-32 bg-brand-teal/5 rounded-full blur-3xl pointer-events-none" />
         
-        <h4 className="font-display text-sm font-extrabold text-brand-teal uppercase tracking-[0.15em] mb-1">
-          {trackT.radarTitle}
-        </h4>
-        <p className="text-xs text-gray-300 mb-4 font-sans leading-relaxed">
-          {trackT.radarDesc}
-        </p>
-
+        <h4 className="font-display text-sm font-extrabold text-white mb-1">{trackT.radarTitle}</h4>
+        <p className="text-[11px] text-gray-400 mb-4">{trackT.radarDesc}</p>
+        
         <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-grow">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-brand-teal opacity-60" />
+          <div className="flex-1 relative">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
               value={searchId}
               onChange={(e) => setSearchId(e.target.value)}
-              placeholder={trackT.placeholder}
-              className="w-full bg-[#030d1a] border border-brand-teal/25 rounded-xl py-3 pl-10 pr-4 text-white text-sm font-mono placeholder:text-gray-500 focus:outline-none focus:border-brand-teal focus:ring-1 focus:ring-brand-teal"
               onKeyDown={(e) => e.key === "Enter" && handleSearch(searchId)}
+              placeholder={trackT.placeholder}
+              className="w-full bg-[#030d1a] border border-brand-teal/20 rounded-xl py-3 pl-10 pr-4 text-sm text-white focus:outline-none focus:border-brand-teal transition-all"
+              disabled={loading}
             />
           </div>
           <button
             onClick={() => handleSearch(searchId)}
             disabled={loading}
-            className="bg-brand-teal text-brand-navy hover:bg-[#00bda0] disabled:bg-gray-700 font-sans font-bold text-xs uppercase tracking-wider py-3 px-6 rounded-xl transition-all duration-300"
+            className="bg-brand-teal text-brand-navy px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-[#00bda0] disabled:opacity-50 transition-all flex items-center justify-center gap-2"
           >
-            {loading ? trackT.buttonTracking : trackT.buttonTrack}
+            {loading ? (
+              <><span className="h-3.5 w-3.5 rounded-full border-2 border-brand-navy border-t-transparent animate-spin" /> {trackT.buttonTracking}</>
+            ) : (
+              <><Ship className="h-4 w-4" /> {trackT.buttonTrack}</>
+            )}
           </button>
         </div>
 
-        {/* Quick presets buttons */}
-        <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-brand-teal/10">
-          <span className="font-mono text-[10px] text-gray-200 uppercase tracking-wider mr-2">
-            {trackT.activeAssets}
-          </span>
-          {presetTracks.map((preset) => (
-            <button
-              key={preset}
-              onClick={() => {
-                setSearchId(preset);
-                handleSearch(preset);
-              }}
-              className={`font-mono text-xs px-3 py-1.5 rounded-lg border transition-all duration-300 ${
-                activeTrack?.id === preset
-                  ? "bg-brand-teal/10 border-brand-teal text-brand-teal font-semibold"
-                  : "bg-brand-navy/60 border-brand-teal/15 text-gray-300 hover:border-brand-teal/40 hover:text-white"
-              }`}
+        {error && (
+          <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-2 mt-3 text-red-400 bg-red-950/20 border border-red-900/40 p-3 rounded-xl text-[11px] font-mono">
+            <AlertCircle className="h-4 w-4 shrink-0" />{error}
+          </motion.div>
+        )}
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <span className="text-[9px] font-mono text-gray-500 uppercase tracking-wider">{trackT.activeAssets}</span>
+          {presetTracks.map((id) => (
+            <button key={id}
+              onClick={() => { setSearchId(id); handleSearch(id); }}
+              className="text-[10px] font-mono text-brand-teal bg-brand-teal/5 border border-brand-teal/20 hover:bg-brand-teal/10 px-2.5 py-1 rounded-lg transition-all"
             >
-              {preset}
+              {id}
             </button>
           ))}
         </div>
-
-        {/* Error readout */}
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-3 flex items-center gap-2 text-red-400 bg-red-950/40 border border-red-900/40 p-3 rounded-lg text-xs font-mono"
-          >
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            {error}
-          </motion.div>
-        )}
       </div>
 
-      {/* Cargo Details Readout Panel */}
+      {/* Track Results */}
       {activeTrack && (
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-6"
-        >
-          {/* Column 1: Core Shipment Manifest */}
-          <div className="md:col-span-2 space-y-6">
-            <div className="bg-brand-navy border border-brand-teal/15 rounded-2xl p-5 md:p-6 shadow-xl space-y-5">
-              <div className="flex items-center justify-between border-b border-brand-teal/10 pb-4">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          
+          {/* Column 1: Cargo Details & Timeline (takes 3/5) */}
+          <div className="lg:col-span-3 space-y-6">
+            {/* Cargo Info Cards */}
+            <div className="bg-brand-navy border border-brand-teal/15 rounded-2xl p-5 md:p-6 shadow-xl">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
                 <div className="flex items-center gap-3">
-                  <div className="bg-brand-teal/10 p-2.5 rounded-xl border border-brand-teal/20">
-                    {activeTrack.type === "Air Cargo" ? (
-                      <Plane className="h-5 w-5 text-brand-teal" />
-                    ) : (
-                      <Ship className="h-5 w-5 text-brand-teal" />
-                    )}
+                  <div className={`p-2.5 rounded-xl ${activeTrack.type === "Sea Cargo" ? "bg-blue-500/10 text-blue-400" : "bg-brand-gold/10 text-brand-gold"}`}>
+                    {activeTrack.type === "Sea Cargo" ? <Ship className="h-6 w-6" /> : <Plane className="h-6 w-6" />}
                   </div>
                   <div>
-                    <h3 className="font-display text-base font-bold text-white leading-tight">
-                      {activeTrack.id}
-                    </h3>
-                    <p className="text-[10px] font-mono text-brand-teal uppercase tracking-widest mt-0.5">
-                      {activeTrack.type} • {activeTrack.carrier}
-                    </p>
+                    <h3 className="text-sm font-bold text-white font-display">{activeTrack.id}</h3>
+                    <span className="text-[10px] font-mono text-brand-teal">{activeTrack.carrier}</span>
                   </div>
                 </div>
-
-                <span className={`text-[11px] font-mono font-bold uppercase tracking-wider px-3 py-1 rounded-full border ${
-                  activeTrack.status === "Delivered"
-                    ? "bg-green-500/10 border-green-500/30 text-green-400"
-                    : "bg-brand-gold/10 border-brand-gold/30 text-brand-gold animate-pulse"
-                }`}>
-                  {activeTrack.status}
-                </span>
+                <span className={`text-[10px] font-mono px-2.5 py-1 rounded-full border ${
+                  activeTrack.status === "Delivered" ? "bg-green-500/10 text-green-400 border-green-500/30" :
+                  activeTrack.status === "In Transit" ? "bg-brand-teal/10 text-brand-teal border-brand-teal/30 animate-pulse" :
+                  "bg-brand-gold/10 text-brand-gold border-brand-gold/30"
+                }`}>{activeTrack.status}</span>
               </div>
 
-              {/* Grid data elements */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex items-start gap-2.5 bg-[#030d1a] p-3 rounded-xl border border-brand-teal/10">
-                  <MapPin className="h-4 w-4 text-brand-teal shrink-0 mt-0.5" />
-                  <div>
-                    <span className="text-[9px] font-mono text-gray-200 uppercase tracking-wider block">{trackT.originTerminal}</span>
-                    <span className="text-xs font-bold text-white">{activeTrack.origin}</span>
-                    <span className="text-[10px] text-gray-300 block font-mono mt-0.5">{trackT.departed}: {activeTrack.departureDate}</span>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                {[
+                  { label: trackT.originTerminal, value: activeTrack.origin, sub: `${trackT.departed}: ${activeTrack.departureDate}` },
+                  { label: trackT.destinationHub, value: activeTrack.destination, sub: `${trackT.expected}: ${activeTrack.arrivalDate}` },
+                  { label: trackT.consignmentCargo, value: activeTrack.cargoDetails, sub: trackT.grossWeight + ": " + activeTrack.weight },
+                  { label: activeTrack.type === "Air Cargo" ? "Flight" : trackT.transportVessel, value: activeTrack.vessel, sub: `${trackT.supplierShipper}: ${activeTrack.shipper}` },
+                ].map((c, i) => (
+                  <div key={i} className="bg-[#030d1a] border border-brand-teal/5 p-3 rounded-xl">
+                    <span className="text-[9px] font-mono text-gray-500 uppercase tracking-wider">{c.label}</span>
+                    <p className="text-[11px] font-bold text-white mt-1 leading-tight">{c.value}</p>
+                    <span className="text-[9px] text-gray-400 mt-1 block">{c.sub}</span>
                   </div>
-                </div>
-
-                <div className="flex items-start gap-2.5 bg-[#030d1a] p-3 rounded-xl border border-brand-teal/10">
-                  <MapPin className="h-4 w-4 text-brand-gold shrink-0 mt-0.5" />
-                  <div>
-                    <span className="text-[9px] font-mono text-gray-200 uppercase tracking-wider block">{trackT.destinationHub}</span>
-                    <span className="text-xs font-bold text-brand-gold">{activeTrack.destination}</span>
-                    <span className="text-[10px] text-gray-300 block font-mono mt-0.5">{trackT.expected}: {activeTrack.arrivalDate}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Detailed Spec Lists */}
-              <div className="border-t border-brand-teal/10 pt-4 space-y-3">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-gray-200 flex items-center gap-1.5 font-sans">
-                    <Layers className="h-3.5 w-3.5 text-brand-teal" />
-                    {trackT.consignmentCargo}
-                  </span>
-                  <span className="text-white font-medium text-right font-sans max-w-[200px] truncate">
-                    {activeTrack.cargoDetails}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-gray-200 font-sans">{trackT.grossWeight}</span>
-                  <span className="text-white font-mono font-medium">{activeTrack.weight}</span>
-                </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-gray-200 font-sans">{trackT.transportVessel}</span>
-                  <span className="text-brand-teal font-medium font-sans">{activeTrack.vessel}</span>
-                </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-gray-200 font-sans">{trackT.supplierShipper}</span>
-                  <span className="text-white font-sans truncate max-w-[180px]">{activeTrack.shipper}</span>
-                </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-gray-200 font-sans">{trackT.receiverConsignee}</span>
-                  <span className="text-white font-sans truncate max-w-[180px]">{activeTrack.consignee}</span>
-                </div>
+                ))}
               </div>
             </div>
 
-            {/* Checkpoints timeline list */}
+            {/* Timeline */}
             <div className="bg-brand-navy border border-brand-teal/15 rounded-2xl p-5 md:p-6 shadow-xl">
-              <h4 className="font-display text-sm font-bold text-white mb-4 flex items-center gap-2">
-                <Info className="h-4 w-4 text-brand-teal" />
-                {trackT.logTimeline}
+              <h4 className="font-display text-xs font-extrabold text-brand-teal uppercase tracking-[0.15em] mb-4 flex items-center gap-2">
+                <Layers className="h-4 w-4" /> {trackT.logTimeline}
               </h4>
-
-              <div className="relative border-l border-brand-teal/15 ml-3 pl-6 space-y-6">
-                {activeTrack.route.map((point, index) => {
-                  const isCompleted = point.status === "Completed";
-                  const isCurrent = point.status === "In Progress";
-                  
-                  return (
-                    <div key={index} className="relative">
-                      {/* Timeline Dot */}
-                      <span className={`absolute -left-[31px] top-0 h-4.5 w-4.5 rounded-full border-2 flex items-center justify-center ${
-                        isCompleted
-                          ? "bg-brand-teal border-brand-teal text-brand-navy"
-                          : isCurrent
-                          ? "bg-brand-navy border-brand-teal text-brand-teal animate-pulse"
-                          : "bg-brand-navy border-gray-600 text-gray-600"
-                      }`}>
-                        {isCompleted && <CheckCircle2 className="h-3 w-3" />}
-                      </span>
-
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className={`text-xs font-bold ${
-                            isCompleted ? "text-white" : isCurrent ? "text-brand-teal" : "text-gray-500"
-                          }`}>
-                            {point.name}
-                          </span>
-                          {isCurrent && (
-                            <span className="text-[8px] font-mono bg-brand-teal/10 text-brand-teal px-1.5 py-0.5 rounded-md uppercase tracking-wider font-bold animate-pulse">
-                              {trackT.activeLocation}
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-[10px] font-mono text-gray-200 block mt-0.5">
-                          Date: {point.date} • {point.status}
-                        </span>
-                      </div>
+              <div className="space-y-0 relative">
+                <div className="absolute left-[7px] top-2 bottom-2 w-px bg-brand-teal/20" />
+                {activeTrack.route.map((point, i) => (
+                  <div key={i} className="flex items-start gap-4 pb-4 relative">
+                    <div className={`shrink-0 w-[15px] h-[15px] rounded-full border-2 z-10 flex items-center justify-center ${
+                      point.status === "Completed" ? "bg-green-500 border-green-500" :
+                      point.status === "In Progress" ? "bg-brand-teal border-brand-teal animate-pulse" :
+                      "bg-[#030d1a] border-gray-600"
+                    }`}>
+                      {point.status === "Completed" && <CheckCircle2 className="h-3 w-3 text-white" />}
                     </div>
-                  );
-                })}
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs font-bold text-white">{point.name}</span>
+                      {point.status !== "Pending" && (
+                        <span className={`text-[9px] font-mono ml-2 ${
+                          point.status === "Completed" ? "text-green-400" : "text-brand-teal"
+                        }`}>
+                          {trackT.activeLocation}
+                        </span>
+                      )}
+                      <span className="text-[10px] font-mono text-gray-200 block mt-0.5">
+                        Date: {point.date} • {point.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
 
-          {/* Column 2: IoT Live Environment Metrics */}
-          <div className="space-y-6">
+          {/* Column 2: IoT Sensors & Security */}
+          <div className="lg:col-span-2 space-y-6">
             <div className="bg-brand-navy border border-brand-teal/15 rounded-2xl p-5 md:p-6 shadow-xl relative overflow-hidden">
               <div className="absolute top-0 right-0 h-20 w-20 bg-brand-teal/5 rounded-full blur-2xl pointer-events-none" />
               
@@ -327,7 +275,6 @@ export const TrackingSection: React.FC<TrackingSectionProps> = ({ onSelectTrack,
               </h4>
 
               <div className="space-y-4">
-                {/* Temperature Sensor */}
                 <div className="bg-[#030d1a] border border-brand-teal/10 p-4 rounded-xl flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="bg-orange-500/10 p-2 rounded-lg text-orange-400 border border-orange-500/20">
@@ -343,7 +290,6 @@ export const TrackingSection: React.FC<TrackingSectionProps> = ({ onSelectTrack,
                   </span>
                 </div>
 
-                {/* Humidity Sensor */}
                 <div className="bg-[#030d1a] border border-brand-teal/10 p-4 rounded-xl flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="bg-blue-500/10 p-2 rounded-lg text-blue-400 border border-blue-500/20">
@@ -359,7 +305,6 @@ export const TrackingSection: React.FC<TrackingSectionProps> = ({ onSelectTrack,
                   </span>
                 </div>
 
-                {/* Logistics Radar Ping info */}
                 <div className="bg-[#030d1a] border border-brand-teal/10 p-4 rounded-xl space-y-2">
                   <div className="flex justify-between text-[11px] font-mono text-gray-300">
                     <span>{trackT.satUplink}:</span>
@@ -377,7 +322,6 @@ export const TrackingSection: React.FC<TrackingSectionProps> = ({ onSelectTrack,
               </div>
             </div>
 
-            {/* Security Seal Verification Card */}
             <div className="bg-[#031326] border border-brand-teal/20 rounded-2xl p-5 shadow-lg relative overflow-hidden">
               <div className="absolute top-0 right-0 h-32 w-32 bg-brand-gold/5 rounded-full blur-3xl pointer-events-none" />
               

@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from "motion/react";
 import { Send, Bot, User, Sparkles, RefreshCw, AlertCircle, HelpCircle } from "lucide-react";
 import { ChatMessage } from "../types";
 
+const CONVEX_SITE_URL = import.meta.env.VITE_CONVEX_SITE_URL || "https://tangible-husky-835.eu-west-1.convex.site";
+
 interface ChatAssistantProps {
   lang?: "en" | "so";
 }
@@ -18,7 +20,7 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ lang = "en" }) => 
         { text: "Sea vs Air Cargo", label: "Shipping container dimensions & times" },
       ],
       title: "Baane AI Sourcing Agent",
-      status: "Gemini 3.5 Core • Online",
+      status: "AI Core • Online",
       resetTitle: "Reset Conversation",
       loading: "AI Agent is analyzing trade regulations...",
       placeholder: "Type your China-Somaliland logistics query...",
@@ -33,7 +35,7 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ lang = "en" }) => 
         { text: "Air vs Sea Cargo", label: "Cabbirrada konteynarka iyo masiirka rarka" },
       ],
       title: "Baane AI Caawiye",
-      status: "Gemini 3.5 Core • Diyaar",
+      status: "AI Core • Diyaar",
       resetTitle: "Dib u bilaabo wadahadalka",
       loading: "Aaladda AI waxay baadhaysaa xeerarka ganacsiga...",
       placeholder: "Geli su'aashaada ku saabsan Shiinaha iyo Somaliland...",
@@ -55,23 +57,19 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ lang = "en" }) => 
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  // Update initial message when language changes
   useEffect(() => {
     setMessages((prev) => {
       if (prev.length === 1 && prev[0].id === "welcome") {
-        return [
-          {
-            id: "welcome",
-            role: "assistant",
-            content: chatT.welcome,
-            timestamp: prev[0].timestamp,
-          }
-        ];
+        return [{
+          id: "welcome",
+          role: "assistant",
+          content: chatT.welcome,
+          timestamp: prev[0].timestamp,
+        }];
       }
       return prev;
     });
@@ -94,13 +92,13 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ lang = "en" }) => 
     setError("");
 
     try {
-      // Build brief context history for the API call (recent 10 messages)
       const contextHistory = messages.slice(-10).map((msg) => ({
         role: msg.role,
         content: msg.content,
       }));
 
-      const response = await fetch("/api/chat", {
+      // Use Convex HTTP action URL (proxied via Vite in dev, direct in production)
+      const response = await fetch(`${CONVEX_SITE_URL}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -131,101 +129,91 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ lang = "en" }) => 
     }
   };
 
-  const handleResetChat = () => {
-    setMessages([
-      {
-        id: "welcome",
-        role: "assistant",
-        content: chatT.welcome,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      },
-    ]);
+  const resetChat = () => {
+    setMessages([{
+      id: "welcome-" + Date.now(),
+      role: "assistant",
+      content: chatT.welcome,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    }]);
     setError("");
   };
 
   return (
-    <div className="bg-brand-navy border border-brand-teal/20 rounded-2xl shadow-xl flex flex-col h-[550px] relative overflow-hidden">
-      {/* Laser Glow top border */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-brand-teal to-transparent" />
-
-      {/* Chat Header */}
-      <div className="p-4 border-b border-brand-teal/15 flex items-center justify-between bg-brand-navy/80 backdrop-blur-md z-10">
+    <div className="flex flex-col h-full bg-[#030d1a] border border-brand-teal/20 rounded-2xl overflow-hidden shadow-2xl">
+      {/* Header */}
+      <div className="px-4 py-3 bg-brand-navy border-b border-brand-teal/10 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="bg-brand-teal/15 p-2 rounded-xl border border-brand-teal/30 relative">
-            <Bot className="h-5 w-5 text-brand-teal" />
-            <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-green-400 border-2 border-brand-navy animate-pulse" />
+          <div className="p-1.5 rounded-lg bg-brand-teal/10 border border-brand-teal/20">
+            <Bot className="h-4 w-4 text-brand-teal" />
           </div>
           <div>
-            <h4 className="font-display text-sm font-extrabold text-white uppercase tracking-wider flex items-center gap-1.5">
-              {chatT.title}
-              <Sparkles className="h-3.5 w-3.5 text-brand-gold animate-pulse" />
-            </h4>
-            <span className="font-mono text-[9px] text-brand-teal uppercase tracking-widest font-bold">
-              {chatT.status}
-            </span>
+            <h4 className="text-xs font-bold text-white font-display">{chatT.title}</h4>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
+              <span className="text-[9px] font-mono text-green-400/80">{chatT.status}</span>
+            </div>
           </div>
         </div>
-
         <button
-          onClick={handleResetChat}
-          className="text-gray-400 hover:text-brand-teal p-1.5 rounded-lg border border-transparent hover:border-brand-teal/10 transition-all"
+          onClick={resetChat}
+          className="text-gray-500 hover:text-brand-teal p-1.5 rounded-lg hover:bg-white/5 transition-all"
           title={chatT.resetTitle}
         >
-          <RefreshCw className="h-3.5 w-3.5" />
+          <RefreshCw className="h-4 w-4" />
         </button>
       </div>
 
-      {/* Message Output Frame */}
-      <div className="flex-grow overflow-y-auto p-4 space-y-4 bg-[#030d1a]/40 relative">
-        <div className="absolute inset-0 bg-[radial-gradient(rgba(0,212,170,0.03)_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
+      {/* Messages Container */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth" style={{ maxHeight: "400px" }}>
+        <AnimatePresence initial={false}>
+          {messages.map((msg, idx) => {
+            const isAI = msg.role === "assistant";
+            const showAvatar = idx === 0 || messages[idx - 1]?.role !== msg.role;
 
-        {messages.map((msg) => {
-          const isAI = msg.role === "assistant";
-          return (
-            <div
-              key={msg.id}
-              className={`flex items-start gap-2.5 max-w-[85%] ${
-                isAI ? "self-start" : "self-end ml-auto flex-row-reverse"
-              }`}
-            >
-              {/* Avatar */}
-              <div className={`p-1.5 rounded-lg border shrink-0 ${
-                isAI
-                  ? "bg-brand-teal/10 border-brand-teal/20 text-brand-teal"
-                  : "bg-brand-gold/10 border-brand-gold/20 text-brand-gold"
-              }`}>
-                {isAI ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
-              </div>
+            return (
+              <motion.div
+                key={msg.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`flex items-start gap-2.5 ${isAI ? "" : "flex-row-reverse"} ${showAvatar ? "" : "mt-0"}`}
+                style={{ maxWidth: showAvatar ? "90%" : "85%" }}
+              >
+                {showAvatar && (
+                  <div className={`p-1.5 rounded-lg border shrink-0 mt-0.5 ${
+                    isAI ? "bg-brand-teal/10 border-brand-teal/20 text-brand-teal" : "bg-brand-gold/10 border-brand-gold/20 text-brand-gold"
+                  }`}>
+                    {isAI ? <Bot className="h-4 w-4" /> : <User className="h-4 w-4" />}
+                  </div>
+                )}
 
-              {/* Message Bubble */}
-              <div className={`rounded-2xl p-3 text-xs leading-relaxed shadow-md ${
-                isAI
-                  ? "bg-brand-navy border border-brand-teal/10 text-gray-200"
-                  : "bg-[#0A2540] border border-brand-gold/25 text-white"
-              }`}>
-                {/* Process simple markdown lists inside content */}
-                <div className="whitespace-pre-wrap font-sans">
-                  {msg.content.split("\n").map((line, i) => {
-                    if (line.trim().startsWith("*") || line.trim().startsWith("-")) {
-                      return (
-                        <span key={i} className="block pl-3 relative mt-1">
-                          <span className="absolute left-0 text-brand-teal">•</span>
-                          {line.substring(2)}
-                        </span>
-                      );
-                    }
-                    return <span key={i} className="block mt-0.5">{line}</span>;
-                  })}
+                <div className={`rounded-2xl p-3 text-xs leading-relaxed shadow-md ${
+                  isAI
+                    ? "bg-brand-navy border border-brand-teal/10 text-gray-200"
+                    : "bg-[#0A2540] border border-brand-gold/25 text-white"
+                }`}>
+                  <div className="whitespace-pre-wrap font-sans">
+                    {msg.content.split("\n").map((line, i) => {
+                      if (line.trim().startsWith("*") || line.trim().startsWith("-")) {
+                        return (
+                          <span key={i} className="block pl-3 relative mt-1">
+                            <span className="absolute left-0 text-brand-teal">•</span>
+                            {line.substring(2)}
+                          </span>
+                        );
+                      }
+                      return <span key={i} className="block mt-0.5">{line}</span>;
+                    })}
+                  </div>
+                  <span className="text-[8px] font-mono text-gray-500 mt-1 block text-right">
+                    {msg.timestamp}
+                  </span>
                 </div>
-                <span className="text-[8px] font-mono text-gray-500 mt-1 block text-right">
-                  {msg.timestamp}
-                </span>
-              </div>
-            </div>
-          );
-        })}
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
 
-        {/* Loading Indicator */}
         {loading && (
           <div className="flex items-start gap-2.5 max-w-[85%] self-start">
             <div className="p-1.5 rounded-lg border bg-brand-teal/10 border-brand-teal/20 text-brand-teal animate-spin">
@@ -242,7 +230,6 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ lang = "en" }) => 
           </div>
         )}
 
-        {/* Error notification block */}
         {error && (
           <div className="flex items-center gap-2 text-red-400 bg-red-950/20 border border-red-900/30 p-3 rounded-xl text-xs font-mono max-w-[90%] mx-auto">
             <AlertCircle className="h-4 w-4 shrink-0" />
@@ -263,7 +250,7 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ lang = "en" }) => 
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Suggestion Prompts Section */}
+      {/* Suggestion Prompts */}
       <div className="px-4 py-2 border-t border-brand-teal/10 bg-brand-navy/60 flex items-center gap-1.5 overflow-x-auto whitespace-nowrap">
         <HelpCircle className="h-3.5 w-3.5 text-brand-teal shrink-0" />
         {chatT.suggestionPrompts.map((p, idx) => (
