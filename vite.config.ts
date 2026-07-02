@@ -21,12 +21,6 @@ export default defineConfig({
   server: {
     port: 3000,
     open: true,
-    proxy: {
-      '/api': {
-        target: 'https://tangible-husky-835.eu-west-1.convex.site',
-        changeOrigin: true,
-      },
-    },
   },
   appType: 'spa',
   build: {

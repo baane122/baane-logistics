@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { motion } from "motion/react";
 import { PlusCircle, Search, HelpCircle, Package, Map, DollarSign, Send, CheckCircle, AlertCircle } from "lucide-react";
-import { SourcingRequest } from "../types";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
 
 interface SourcingSectionProps {
   lang?: "en" | "so";
@@ -17,100 +18,103 @@ export const SourcingSection: React.FC<SourcingSectionProps> = ({ lang = "en" })
     targetMarket: "Yiwu Commodities City",
     description: "",
   });
-
-  const [tickets, setTickets] = useState<SourcingRequest[]>([
-    {
-      id: "SRC-7801",
-      name: "Abdirahman Baane",
-      phone: "+252 63 4441234",
-      productType: "Monocrystalline Solar Panels & Inverters",
-      quantity: "500 Units",
-      budget: "$45,000",
-      targetMarket: "Shenzhen Electronics",
-      description: "Looking for top-tier Tier-1 solar modules with 25-year warranties and matching pure sine wave hybrid solar inverters.",
-      status: "Searching Suppliers",
-      createdAt: "2026-06-28T14:20:00Z",
-    },
-    {
-      id: "SRC-4209",
-      name: "Somali Building Co",
-      phone: "+252 63 9998888",
-      productType: "Vitrified Porcelain Tiles (Foshan)",
-      quantity: "2x 40ft Containers",
-      budget: "$28,000",
-      targetMarket: "Foshan Ceramics Market",
-      description: "600x600mm luxury polished glazed porcelain flooring tiles. Sourcing directly from reputable Foshan factory plants.",
-      status: "Verifying Samples",
-      createdAt: "2026-06-25T11:15:00Z",
-    }
-  ]);
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [tickets, setTickets] = useState<any[]>([]);
   const [success, setSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
 
-  const sourcT = {
+  const createSourcing = useMutation(api.sourcing.create);
+
+  const srcT = {
     en: {
-      title: "Initiate Sourcing Command",
-      desc: "Specify your desired commodity. Our on-the-ground sourcing agents in China (Ningbo, Shenzhen, Yiwu, Guangzhou) will locate direct factory partners, inspect sample models, and secure wholesale bidding rates.",
-      successTitle: "Sourcing Command Broadcasted",
-      successDesc: "Your request has been filed under secure protocols. Our Yiwu / Guangzhou office is assigning a specialist agent. Verify progress on the right tracker panel.",
-      lblMerchant: "Merchant Name / Contact",
-      placeholderMerchant: "e.g. Mustafe Omer",
-      lblPhone: "WhatsApp / Mobile",
-      placeholderPhone: "e.g. +252 63 4001122",
-      lblProduct: "Product Description/Category",
-      placeholderProduct: "e.g. Solar panels, Garments, Tiles",
+      radarTitle: "Baane Product Sourcing Engine",
+      radarDesc: "Send a detailed sourcing request to our China-based procurement officers. We speak factory, trade law, and quality metrics fluently.",
+      title: "Sourcing Request Wizard",
+      subtitle: "China Market Procurement Order",
+      reqFields: "Required Purchase Details",
+      lblName: "Your Name / Company",
+      placeholderName: "e.g. Ahmed Ismail Traders",
+      lblPhone: "Phone (incl. country code)",
+      placeholderPhone: "+252 63 370 6667",
+      lblProduct: "Product / Commodity to Source",
+      placeholderProduct: "e.g. Solar panels, phone accessories, furniture, tiles...",
       lblQty: "Target Volume / Quantity",
-      placeholderQty: "e.g. 5,000 Units / 1x 20ft container",
-      lblBudget: "Estimated Sourcing Budget (USD)",
-      placeholderBudget: "e.g. 15,000",
-      lblMarket: "Primary Sourcing Market Hub",
-      lblSpec: "Product Specifications & Special Requests",
-      placeholderSpec: "Detail brand names, materials, certificates (CE/ISO) or customization logos required...",
-      btnSubmit: "Broadcast Sourcing Command",
-      btnSubmitting: "Initiating Uplink...",
-      radarTitle: "Sourcing Radar Console",
-      officeTitle: "On-Ground China Offices",
-      officeDesc: "We operate physical warehouses and audit hubs in Yiwu and Guangzhou, meaning we handle factory negotiations directly, cut out intermediate broker margins, and manage export customs autonomously.",
+      placeholderQty: "e.g. 500 units, 2 x 20ft containers, 1000 sqm",
+      optFields: "Optional Targeting & Budget",
+      lblBudget: "Budget Range (USD)",
+      placeholderBudget: "e.g. 5,000 - 50,000",
+      lblMarket: "Target Market / City in China",
+      lblDesc: "Product Specs & Special Notes",
+      placeholderDesc: "Specify brands, materials, certifications (CE/ISO), or special packaging requirements...",
+      btnSubmit: "Submit Sourcing Order",
+      btnSubmitting: "Contacting China Hub...",
+      radarTitle2: "Sourcing Radar Screen",
+      officeTitle: "Live China Offices",
+      officeDesc: "We maintain bonded warehouses and inspection hubs in Yiwu and Guangzhou city centers, enabling our team to negotiate factory-direct pricing, consolidate pallets, perform quality checks, and clear customs paperwork on-site.",
       markets: {
         yiwu: "Yiwu Commodities City (General Merchandise)",
-        shenzhen: "Shenzhen Huaqiangbei (Tech & Electronics)",
-        guangzhou: "Guangzhou Garment District (Apparel & Fabric)",
-        foshan: "Foshan Lecong Hub (Ceramics & Furniture)",
+        shenzhen: "Shenzhen Huaqiangbei (Electronics & Tech)",
+        guangzhou: "Guangzhou Garment District (Apparel & Textiles)",
+        foshan: "Foshan Lecong Hub (Ceramics & Homeware)",
         ningbo: "Ningbo Industrial Park (Machinery & Hardware)",
-      }
+      },
+      errName: "Please enter your name or company name.",
+      errProduct: "Please describe the product or commodity.",
+      errQty: "Please specify the target volume or quantity.",
+      errSubmit: "Failed to submit sourcing request. Please try again.",
+      successMsg: "Sourcing request submitted successfully! Our China team will review within 24 hours.",
+      recentRequests: "Recent Sourcing Requests",
+      statusReceived: "Received",
+      statusSearching: "Searching Suppliers",
+      statusVerifying: "Verifying Samples",
+      statusQuoted: "Quoted",
+      statusCompleted: "Completed",
+      noRequests: "No requests yet. Submit one above.",
     },
     so: {
-      title: "Bilow Dalabka Sourcing-ka",
-      desc: "Sheeg badeecada aad rabto. Kooxdayada ku sugan Shiinaha (Ningbo, Shenzhen, Yiwu, Guangzhou) waxay toos u helayaan warshado, iyagoo hubinaya tayada muunada, soona helaya qiimaha ugu jaban ee jumladda ah.",
-      successTitle: "Amarka Sourcing-ka Waa la Diray",
-      successDesc: "Dalabkaaga si ammaan ah ayaa loo xereeyay. Xafiiskayaga Yiwu ama Guangzhou ayaa loo xilsaaray wakiil khabiir ah. Kala soco horumarka dhanka midig.",
-      lblMerchant: "Magaca Ganacsadaha",
-      placeholderMerchant: "tusaale. Mustafe Cumar",
-      lblPhone: "WhatsApp / Taleefan",
-      placeholderPhone: "tusaale. +252 63 4001122",
-      lblProduct: "Faahfaahinta / Nooca Badeecada",
-      placeholderProduct: "tusaale. Solar-ada, Dharka, Marmarka",
-      lblQty: "Tirada aad u Baahan Tahay",
-      placeholderQty: "tusaale. 5,000 oo xabbo ama Konteynar 20ft ah",
-      lblBudget: "Miisaaniyada qiyaasta ah (USD)",
-      placeholderBudget: "tusaale. 15,000",
-      lblMarket: "Suuqa Sourcing-ka Shiinaha",
-      lblSpec: "Shuruudaha Alaabta & Dalabaadka Gaarka ah",
-      placeholderSpec: "Sheeg magacyada sumadaha, agabka, shahaadooyinka (CE/ISO) ama sumadaha gaarka ah ee aad u baahan tahay...",
+      radarTitle: "Mashiinka Sourcing-ka Baane",
+      radarDesc: "Soo gudbi dalab sourcing ah oo faahfaahsan oo ay eegi howl-wadeennada iibka ee Shiinaha ku leenahay.",
+      title: "Dalab Sourcing",
+      subtitle: "Dalabka Iibka & Soo Dhoofinta",
+      reqFields: "Faahfaahinta Dalabka (Lama Huraan)",
+      lblName: "Magacaaga / Shirkadda",
+      placeholderName: "tusaale. Ahmed Ismail Traders",
+      lblPhone: "Telefoonka (oo ay ku jirto lambarka waddanka)",
+      placeholderPhone: "+252 63 370 6667",
+      lblProduct: "Alaabta / Badeecada",
+      placeholderProduct: "tusaale. Sonkor, qalab elektaroonig ah, dharbaaxo...",
+      lblQty: "Tirada / Qadarka",
+      placeholderQty: "tusaale. 500 unit, 2 konteynar 20ft, 1000 sqm",
+      optFields: "Macluumaad Dheeraad ah",
+      lblBudget: "Qiyaasta Qiimaha (USD)",
+      placeholderBudget: "tusaale. 5,000 - 50,000",
+      lblMarket: "Suuqa / Magaalada Shiinaha",
+      lblDesc: "Shuruudaha Alaabta & Dalabaadka Gaarka ah",
+      placeholderDesc: "Sheeg magacyada sumadaha, agabka, shahaadooyinka (CE/ISO) ama sumadaha gaarka ah...",
       btnSubmit: "Dir Amarka Sourcing-ka",
       btnSubmitting: "La xidhiidhaya Shiinaha...",
-      radarTitle: "Mashiinka Sourcing-ka",
+      radarTitle2: "Mashiinka Sourcing-ka",
       officeTitle: "Xafiisyada Tooska ah ee Shiinaha",
-      officeDesc: "Waxaan ku leenahay bakhaaro iyo xarumo baadhiseed magaalooyinka Yiwu iyo Guangzhou, taas oo la macno ah inaan si toos ah ula xaajoonayno warshadaha, meeshana ka saarayno dadka dhex-dhexaadka ah, soona marinayno kastamka si xirfad leh.",
+      officeDesc: "Waxaan ku leenahay bakhaaro iyo xarumo baadhiseed magaalooyinka Yiwu iyo Guangzhou, taas oo la macno ah inaan si toos ah ula xaajoonayno warshadaha.",
       markets: {
         yiwu: "Yiwu Commodities City (Agabka Guud)",
-        shenzhen: "Shenzhen Huaqiangbei (Teknolojiyadda & Qalabka)",
-        guangzhou: "Guangzhou Garment District (Dharka & Dharka)",
-        foshan: "Foshan Lecong Hub (Marmarka & Alaabta Guriga)",
-        ningbo: "Ningbo Industrial Park (Mashiinada & Hardware)",
-      }
+        shenzhen: "Shenzhen Huaqiangbei (Teknolojiyadda)",
+        guangzhou: "Guangzhou Garment District (Dharka)",
+        foshan: "Foshan Lecong Hub (Marmarka & Alaabta)",
+        ningbo: "Ningbo Industrial Park (Mashiinada)",
+      },
+      errName: "Fadlan geli magacaaga.",
+      errProduct: "Fadlan sharax badeecada.",
+      errQty: "Fadlan sheeg tirada.",
+      errSubmit: "Dalabka wuu guuldareystay. Fadlan markale isku day.",
+      successMsg: "Dalabka waa la diray! Kooxdeena Shiinaha ayaa eegi doonta 24 saac gudahood.",
+      recentRequests: "Dalabaadkii Hore",
+      statusReceived: "La Helay",
+      statusSearching: "Baadhista",
+      statusVerifying: "Tijaabinta",
+      statusQuoted: "Qiimeyn",
+      statusCompleted: "La Dhammaystiray",
+      noRequests: "Weli dalab lama dirin.",
     }
   }[lang];
 
@@ -118,47 +122,27 @@ export const SourcingSection: React.FC<SourcingSectionProps> = ({ lang = "en" })
     e.preventDefault();
     setFormError("");
 
-    // Client-side validation
-    if (!form.name.trim()) {
-      setFormError("Please enter your name or company name.");
-      return;
-    }
-    if (!form.productType.trim()) {
-      setFormError("Please describe the product or commodity.");
-      return;
-    }
-    if (!form.quantity.trim()) {
-      setFormError("Please specify the target volume or quantity.");
-      return;
-    }
+    if (!form.name.trim()) { setFormError(srcT.errName); return; }
+    if (!form.productType.trim()) { setFormError(srcT.errProduct); return; }
+    if (!form.quantity.trim()) { setFormError(srcT.errQty); return; }
 
     setIsSubmitting(true);
     try {
-      const res = await fetch("/api/sourcing", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+      const result = await createSourcing({
+        name: form.name.trim(),
+        phone: form.phone.trim(),
+        productType: form.productType.trim(),
+        quantity: form.quantity.trim(),
+        budget: form.budget.trim() || undefined,
+        targetMarket: form.targetMarket,
+        description: form.description.trim() || undefined,
       });
-
-      if (!res.ok) {
-        throw new Error("Server returned " + res.status);
-      }
-
-      const data = await res.json();
-      setTickets((prev) => [data.request, ...prev]);
+      if (result) setTickets((prev) => [result, ...prev]);
       setSuccess(true);
-      setForm({
-        name: "",
-        phone: "",
-        productType: "",
-        quantity: "",
-        budget: "",
-        targetMarket: "Yiwu Commodities City",
-        description: "",
-      });
+      setForm({ name: "", phone: "", productType: "", quantity: "", budget: "", targetMarket: "Yiwu Commodities City", description: "" });
       setTimeout(() => setSuccess(false), 5000);
     } catch (err: any) {
-      setFormError(err.message || "Failed to submit sourcing request. Please try again.");
+      setFormError(srcT.errSubmit);
       console.error("Sourcing submit error:", err);
     } finally {
       setIsSubmitting(false);
@@ -167,222 +151,123 @@ export const SourcingSection: React.FC<SourcingSectionProps> = ({ lang = "en" })
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-      {/* Sourcing Form Wizard (Left, 3 columns) */}
       <div className="lg:col-span-3 space-y-6">
-        <div className="bg-brand-navy border border-brand-teal/20 p-5 md:p-6 rounded-2xl shadow-xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 h-32 w-32 bg-brand-teal/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="bg-brand-navy border border-brand-teal/20 p-5 md:p-6 rounded-2xl shadow-xl">
+          <div className="flex items-center gap-3 mb-4">
+            <Package className="h-5 w-5 text-brand-teal" />
+            <h4 className="font-display text-xs font-extrabold text-white uppercase tracking-[0.12em]">{srcT.title}</h4>
+            <span className="text-[8px] font-mono text-brand-teal/50 ml-auto">{srcT.subtitle}</span>
+          </div>
 
-          <h3 className="font-display text-lg font-bold text-white mb-2 flex items-center gap-2">
-            <PlusCircle className="h-5 w-5 text-brand-teal" />
-            {sourcT.title}
-          </h3>
-          <p className="text-xs text-gray-300 mb-6 font-sans leading-relaxed">
-            {sourcT.desc}
-          </p>
-
-          {success ? (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="bg-brand-teal/10 border border-brand-teal/30 p-6 rounded-xl text-center space-y-3"
-            >
-              <CheckCircle className="h-10 w-10 text-brand-teal mx-auto animate-bounce" />
-              <h4 className="font-display text-sm font-bold text-white uppercase tracking-wider">
-                {sourcT.successTitle}
-              </h4>
-              <p className="text-xs text-gray-300 max-w-sm mx-auto font-sans leading-relaxed">
-                {sourcT.successDesc}
-              </p>
+          {success && (
+            <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
+              className="bg-green-500/10 border border-green-500/20 rounded-xl p-3 flex items-center gap-2 text-green-400 text-xs mb-4">
+              <CheckCircle className="h-4 w-4 shrink-0" />{srcT.successMsg}
             </motion.div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4 font-sans">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Name */}
-                <div>
-                  <label className="text-[10px] font-mono text-gray-400 uppercase tracking-wider block mb-1">
-                    {sourcT.lblMerchant}
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    placeholder={sourcT.placeholderMerchant}
-                    className="w-full bg-[#030d1a] border border-brand-teal/20 rounded-xl py-2 px-3.5 text-xs text-white focus:outline-none focus:border-brand-teal"
-                  />
-                </div>
+          )}
 
-                {/* Phone */}
-                <div>
-                  <label className="text-[10px] font-mono text-gray-400 uppercase tracking-wider block mb-1">
-                    {sourcT.lblPhone}
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={form.phone}
-                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                    placeholder={sourcT.placeholderPhone}
-                    className="w-full bg-[#030d1a] border border-brand-teal/20 rounded-xl py-2 px-3.5 text-xs text-white focus:outline-none focus:border-brand-teal"
-                  />
-                </div>
-              </div>
+          {formError && (
+            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex items-center gap-2 text-red-400 text-xs mb-4">
+              <AlertCircle className="h-4 w-4 shrink-0" />{formError}
+            </div>
+          )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Product Type */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <h5 className="text-[10px] font-mono text-brand-gold uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-brand-gold" />{srcT.reqFields}
+              </h5>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] font-mono text-gray-400 uppercase tracking-wider block mb-1">
-                    {sourcT.lblProduct}
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={form.productType}
-                    onChange={(e) => setForm({ ...form, productType: e.target.value })}
-                    placeholder={sourcT.placeholderProduct}
-                    className="w-full bg-[#030d1a] border border-brand-teal/20 rounded-xl py-2 px-3.5 text-xs text-white focus:outline-none focus:border-brand-teal"
-                  />
+                  <label className="text-[10px] font-mono text-gray-400 mb-1 block">{srcT.lblName}</label>
+                  <input type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={srcT.placeholderName}
+                    className="w-full bg-[#030d1a] border border-brand-teal/15 rounded-xl py-2.5 px-3.5 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-brand-teal transition-all" />
                 </div>
-
-                {/* Quantity */}
                 <div>
-                  <label className="text-[10px] font-mono text-gray-400 uppercase tracking-wider block mb-1">
-                    {sourcT.lblQty}
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={form.quantity}
-                    onChange={(e) => setForm({ ...form, quantity: e.target.value })}
-                    placeholder={sourcT.placeholderQty}
-                    className="w-full bg-[#030d1a] border border-brand-teal/20 rounded-xl py-2 px-3.5 text-xs text-white focus:outline-none focus:border-brand-teal"
-                  />
+                  <label className="text-[10px] font-mono text-gray-400 mb-1 block">{srcT.lblPhone}</label>
+                  <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder={srcT.placeholderPhone}
+                    className="w-full bg-[#030d1a] border border-brand-teal/15 rounded-xl py-2.5 px-3.5 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-brand-teal transition-all" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-[10px] font-mono text-gray-400 mb-1 block">{srcT.lblProduct}</label>
+                  <input type="text" value={form.productType} onChange={(e) => setForm({ ...form, productType: e.target.value })} placeholder={srcT.placeholderProduct}
+                    className="w-full bg-[#030d1a] border border-brand-teal/15 rounded-xl py-2.5 px-3.5 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-brand-teal transition-all" />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="text-[10px] font-mono text-gray-400 mb-1 block">{srcT.lblQty}</label>
+                  <input type="text" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} placeholder={srcT.placeholderQty}
+                    className="w-full bg-[#030d1a] border border-brand-teal/15 rounded-xl py-2.5 px-3.5 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-brand-teal transition-all" />
                 </div>
               </div>
+            </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Target Budget */}
+            <div>
+              <h5 className="text-[10px] font-mono text-brand-gold uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-brand-gold" />{srcT.optFields}
+              </h5>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[10px] font-mono text-gray-400 uppercase tracking-wider block mb-1">
-                    {sourcT.lblBudget}
-                  </label>
-                  <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-brand-teal opacity-60" />
-                    <input
-                      type="text"
-                      value={form.budget}
-                      onChange={(e) => setForm({ ...form, budget: e.target.value })}
-                      placeholder={sourcT.placeholderBudget}
-                      className="w-full bg-[#030d1a] border border-brand-teal/20 rounded-xl py-2 pl-8 pr-3.5 text-xs text-white focus:outline-none focus:border-brand-teal"
-                    />
-                  </div>
+                  <label className="text-[10px] font-mono text-gray-400 mb-1 block">{srcT.lblBudget}</label>
+                  <input type="text" value={form.budget} onChange={(e) => setForm({ ...form, budget: e.target.value })} placeholder={srcT.placeholderBudget}
+                    className="w-full bg-[#030d1a] border border-brand-teal/15 rounded-xl py-2.5 px-3.5 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-brand-teal transition-all" />
                 </div>
-
-                {/* Target Sourcing Market */}
                 <div>
-                  <label className="text-[10px] font-mono text-gray-400 uppercase tracking-wider block mb-1">
-                    {sourcT.lblMarket}
-                  </label>
-                  <select
-                    value={form.targetMarket}
-                    onChange={(e) => setForm({ ...form, targetMarket: e.target.value })}
-                    className="w-full bg-[#030d1a] border border-brand-teal/20 rounded-xl py-2 px-3.5 text-xs text-white focus:outline-none focus:border-brand-teal"
-                  >
-                    <option value="Yiwu Commodities City">{sourcT.markets.yiwu}</option>
-                    <option value="Shenzhen Electronics">{sourcT.markets.shenzhen}</option>
-                    <option value="Guangzhou Clothes">{sourcT.markets.guangzhou}</option>
-                    <option value="Foshan Construction">{sourcT.markets.foshan}</option>
-                    <option value="Ningbo Hardware">{sourcT.markets.ningbo}</option>
+                  <label className="text-[10px] font-mono text-gray-400 mb-1 block">{srcT.lblMarket}</label>
+                  <select value={form.targetMarket} onChange={(e) => setForm({ ...form, targetMarket: e.target.value })}
+                    className="w-full bg-[#030d1a] border border-brand-teal/15 rounded-xl py-2.5 px-3.5 text-xs text-white focus:outline-none focus:border-brand-teal">
+                    {Object.values(srcT.markets).map((m) => <option key={m} value={m}>{m}</option>)}
                   </select>
                 </div>
+                <div className="sm:col-span-2">
+                  <label className="text-[10px] font-mono text-gray-400 mb-1 block">{srcT.lblDesc}</label>
+                  <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={3} placeholder={srcT.placeholderDesc}
+                    className="w-full bg-[#030d1a] border border-brand-teal/15 rounded-xl py-2.5 px-3.5 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-brand-teal transition-all" />
+                </div>
               </div>
+            </div>
 
-              {/* Description */}
-              <div>
-                <label className="text-[10px] font-mono text-gray-400 uppercase tracking-wider block mb-1">
-                  {sourcT.lblSpec}
-                </label>
-                <textarea
-                  rows={3}
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  placeholder={sourcT.placeholderSpec}
-                  className="w-full bg-[#030d1a] border border-brand-teal/20 rounded-xl py-2 px-3.5 text-xs text-white focus:outline-none focus:border-brand-teal"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-brand-teal text-brand-navy hover:bg-[#00bda0] disabled:bg-gray-700 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-2"
-              >
-                <Send className="h-3.5 w-3.5" />
-                {isSubmitting ? sourcT.btnSubmitting : sourcT.btnSubmit}
-              </button>
-            </form>
-          )}
+            <button type="submit" disabled={isSubmitting}
+              className="w-full bg-brand-teal hover:bg-[#00bda0] disabled:bg-gray-700 text-brand-navy py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2">
+              {isSubmitting ? <><span className="h-3.5 w-3.5 rounded-full border-2 border-brand-navy border-t-transparent animate-spin" /> {srcT.btnSubmitting}</> : <><Send className="h-4 w-4" /> {srcT.btnSubmit}</>}
+            </button>
+          </form>
         </div>
       </div>
 
-      {/* Sourcing Tracker Tickets List (Right, 2 columns) */}
       <div className="lg:col-span-2 space-y-6">
-        <div className="bg-brand-navy border border-brand-teal/15 p-5 md:p-6 rounded-2xl shadow-xl h-full flex flex-col justify-between">
-          <div>
-            <h4 className="font-display text-sm font-bold text-white mb-4 flex items-center gap-2">
-              <Package className="h-4 w-4 text-brand-teal" />
-              {sourcT.radarTitle}
-            </h4>
+        <div className="bg-brand-navy border border-brand-teal/20 p-5 rounded-2xl shadow-xl">
+          <h4 className="font-display text-xs font-extrabold text-white mb-3 flex items-center gap-2">
+            <Map className="h-4 w-4 text-brand-teal" /> {srcT.officeTitle}
+          </h4>
+          <p className="text-[11px] text-gray-300 leading-relaxed mb-4">{srcT.officeDesc}</p>
+          <div className="space-y-2">
+            {Object.entries(srcT.markets).map(([key, label]) => (
+              <div key={key} className="bg-[#030d1a] p-3 rounded-xl text-[10px] text-gray-200 font-mono flex items-center gap-2 border border-brand-teal/5">
+                <span className="w-1.5 h-1.5 rounded-full bg-brand-teal shrink-0" />{label}
+              </div>
+            ))}
+          </div>
+        </div>
 
-            <div className="space-y-4 max-h-[360px] overflow-y-auto pr-1">
-              {tickets.map((t) => (
-                <div
-                  key={t.id}
-                  className="bg-[#030d1a]/80 border border-brand-teal/10 p-3.5 rounded-xl space-y-2.5 hover:border-brand-teal/30 transition-all duration-300"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-[10px] text-brand-teal font-bold tracking-wider bg-brand-teal/5 px-2 py-0.5 rounded border border-brand-teal/15">
-                      {t.id}
-                    </span>
-                    <span className={`text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-full border ${
-                      t.status === "Quoted"
-                        ? "bg-green-500/10 border-green-500/20 text-green-400"
-                        : "bg-brand-gold/10 border-brand-gold/20 text-brand-gold animate-pulse"
-                    }`}>
-                      {t.status}
-                    </span>
-                  </div>
-
-                  <div>
-                    <h5 className="text-xs font-bold text-white font-sans line-clamp-1">
-                      {t.productType}
-                    </h5>
-                    <p className="text-[10px] text-gray-400 font-sans mt-0.5">
-                      Vol: {t.quantity} • Budget: {t.budget || "TBD"}
-                    </p>
-                  </div>
-
-                  <p className="text-[10px] text-gray-300 font-sans leading-relaxed line-clamp-2 italic">
-                    "{t.description}"
-                  </p>
-
-                  <div className="flex justify-between items-center border-t border-brand-teal/5 pt-2 font-mono text-[8px] text-gray-500">
-                    <span>Market: {t.targetMarket}</span>
-                    <span>{new Date(t.createdAt).toLocaleDateString()}</span>
-                  </div>
+        <div className="bg-brand-navy border border-brand-teal/15 p-5 rounded-2xl shadow-xl">
+          <h4 className="font-display text-xs font-extrabold text-brand-teal mb-3">{srcT.recentRequests}</h4>
+          {tickets.length === 0 ? (
+            <p className="text-[10px] text-gray-500 text-center py-4">{srcT.noRequests}</p>
+          ) : (
+            tickets.map((t: any) => (
+              <div key={t._id} className="bg-[#030d1a] p-3 rounded-xl mb-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white">{t.productType}</span>
+                  <span className={`text-[9px] font-mono px-2 py-0.5 rounded-full ${
+                    t.status === "Completed" ? "bg-green-500/10 text-green-400" :
+                    t.status === "Quoted" ? "bg-brand-teal/10 text-brand-teal" :
+                    "bg-brand-gold/10 text-brand-gold"
+                  }`}>{t.status}</span>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="bg-[#031326] border border-brand-teal/15 p-4 rounded-xl mt-6">
-            <h5 className="font-display text-[11px] font-extrabold text-brand-gold uppercase tracking-wider mb-1 flex items-center gap-1.5">
-              <Map className="h-3.5 w-3.5 text-brand-gold" />
-              {sourcT.officeTitle}
-            </h5>
-            <p className="text-[10px] text-gray-300 font-sans leading-relaxed">
-              {sourcT.officeDesc}
-            </p>
-          </div>
+                <p className="text-[10px] text-gray-400 mt-1">{t.name} · {t.quantity}</p>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
